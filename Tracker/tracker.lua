@@ -2398,14 +2398,16 @@ end
 ------------------------------
 function tracker:generateFrequencies()
   tuning = self.tuning
-  local frequenciesTable = {}
-  local concertA_hz = 440.0
-  for k, v in pairs(self.pitchTable) do
-    --- this assumes equal division of octaves cents
-    --- for scales with cents specified per note will have to add the cents serially
-    frequenciesTable[k] = concertA_hz * (2^((tuning.cents * k) / 1200))
+  if self.tuning.cents then
+    local frequenciesTable = {}
+    local concertA_hz = 440.0
+    for k, v in pairs(self.pitchTable) do
+      --- this assumes equal division of octaves cents
+      --- for scales with cents specified per note will have to add the cents serially
+      frequenciesTable[k] = concertA_hz * (2^((tuning.cents * k) / 1200))
+    end
+    self.frequenciesTable = frequenciesTable
   end
-  self.frequenciesTable = frequenciesTable
 end
 ------------------------------
 -- Color => Frequency
@@ -2414,78 +2416,80 @@ end
 ------------------------------
 function tracker:generatePitchColors()
   local frequencies = self.frequenciesTable
-  local colorsTable = {}
-  for k, frequency in pairs(frequencies) do
-    local lightFreqRedLower = 400000000000000;
-    local speedOfLightVacuum = 299792458; -- m/sec
-    local speedOfSound = 346; -- hardcode this m/sec..  I suppose you could be in a very strange atmosphere like underwater or very very high altitude?!
-    if (frequency > 0) then
-      local lightFrequency = frequency
-      local lightOctave = 0
-      while lightFrequency < lightFreqRedLower do
-        lightFrequency = (lightFrequency * 2)
-        lightOctave = lightOctave + 1
+  if self.frequenciesTable then
+    local colorsTable = {}
+    for k, frequency in pairs(frequencies) do
+      local lightFreqRedLower = 400000000000000;
+      local speedOfLightVacuum = 299792458; -- m/sec
+      local speedOfSound = 346; -- hardcode this m/sec..  I suppose you could be in a very strange atmosphere like underwater or very very high altitude?!
+      if (frequency > 0) then
+        local lightFrequency = frequency
+        local lightOctave = 0
+        while lightFrequency < lightFreqRedLower do
+          lightFrequency = (lightFrequency * 2)
+          lightOctave = lightOctave + 1
+        end
+        -- Scale to THz and Nanometers
+        local lightWavelength = speedOfLightVacuum / lightFrequency;
+        local lightWavelengthNM = lightWavelength * 1000000000;
+        -- var lightRGB = getColorFromWaveLength (lightWavelengthNM) :
+        -- Color values in the range -1 to 1
+        local gamma = 1.50;
+        local blue, green, red, factor = 0;
+        if (lightWavelengthNM >= 350 and lightWavelengthNM < 440) then
+          -- From Purple (1, 0, 1) to Blue (0, 0, 1), with increasing intensity (set below)
+          red = -(lightWavelengthNM - 440) / (440 - 350)
+          green = 0.0;
+          blue = 1.0;
+        elseif (lightWavelengthNM >= 440 and lightWavelengthNM < 490) then
+          -- From Blue (0, 0, 1) to Cyan (0, 1, 1)
+          red = 0.0;
+          green = (lightWavelengthNM - 440) / (490 - 440);
+          blue = 1.0;
+        elseif (lightWavelengthNM >= 490 and lightWavelengthNM < 510) then
+          -- From  Cyan (0, 1, 1)  to  Green (0, 1, 0)
+          red = 0.0
+          green = 1.0
+          blue = -(lightWavelengthNM - 510) / (510 - 490)
+        elseif (lightWavelengthNM >= 510 and lightWavelengthNM < 580) then
+          -- From  Green (0, 1, 0)  to  Yellow (1, 1, 0)
+          red = (lightWavelengthNM - 510) / (580 - 510)
+          green = 1.0
+          blue = 0.0
+        elseif (lightWavelengthNM >= 580 and lightWavelengthNM < 645) then
+          -- From  Yellow (1, 1, 0)  to  Red (1, 0, 0)
+          red = 1.0;
+          green = -(lightWavelengthNM - 645) / (645 - 580);
+          blue = 0.0;
+        elseif (lightWavelengthNM >= 645 and lightWavelengthNM <= 780) then
+          -- Solid Red (1, 0, 0), with decreasing intensity (set below)
+          red = 1.0;
+          green = 0.0;
+          blue = 0.0;
+        else
+          red = 0.0;
+          green = 0.0;
+          blue = 0.0;
+        end
+        -- Intensity factor goes through the range:
+        -- 0.1 (350-420 nm) 1.0 (420-645 nm) 1.0 (645-780 nm) 0.2
+        if (lightWavelengthNM >= 350 and lightWavelengthNM < 420) then
+          factor = 0.3 + 0.9 * (lightWavelengthNM - 350) / (420 - 350)
+        elseif (lightWavelengthNM >= 420 and lightWavelengthNM < 645) then
+          factor = 1.0
+        elseif (lightWavelengthNM >= 645 and lightWavelengthNM <= 780) then
+          factor = 0.4 + 0.8 * (780 - lightWavelengthNM) / (780 - 645);
+        else
+          factor = 0.0;
+        end
+        r = colorFactorAdjust(red, factor, 1, gamma);
+        g = colorFactorAdjust(green, factor, 1,gamma);
+        b = colorFactorAdjust(blue, factor, 1, gamma);
+        colorsTable[k] = {r, g, b, 1}
       end
-      -- Scale to THz and Nanometers
-      local lightWavelength = speedOfLightVacuum / lightFrequency;
-      local lightWavelengthNM = lightWavelength * 1000000000;
-      -- var lightRGB = getColorFromWaveLength (lightWavelengthNM) :
-      -- Color values in the range -1 to 1
-      local gamma = 1.50;
-      local blue, green, red, factor = 0;
-      if (lightWavelengthNM >= 350 and lightWavelengthNM < 440) then
-        -- From Purple (1, 0, 1) to Blue (0, 0, 1), with increasing intensity (set below)
-        red = -(lightWavelengthNM - 440) / (440 - 350)
-        green = 0.0;
-        blue = 1.0;
-      elseif (lightWavelengthNM >= 440 and lightWavelengthNM < 490) then
-        -- From Blue (0, 0, 1) to Cyan (0, 1, 1)
-        red = 0.0;
-        green = (lightWavelengthNM - 440) / (490 - 440);
-        blue = 1.0;
-      elseif (lightWavelengthNM >= 490 and lightWavelengthNM < 510) then
-        -- From  Cyan (0, 1, 1)  to  Green (0, 1, 0)
-        red = 0.0
-        green = 1.0
-        blue = -(lightWavelengthNM - 510) / (510 - 490)
-      elseif (lightWavelengthNM >= 510 and lightWavelengthNM < 580) then
-        -- From  Green (0, 1, 0)  to  Yellow (1, 1, 0)
-        red = (lightWavelengthNM - 510) / (580 - 510)
-        green = 1.0
-        blue = 0.0
-      elseif (lightWavelengthNM >= 580 and lightWavelengthNM < 645) then
-        -- From  Yellow (1, 1, 0)  to  Red (1, 0, 0)
-        red = 1.0;
-        green = -(lightWavelengthNM - 645) / (645 - 580);
-        blue = 0.0;
-      elseif (lightWavelengthNM >= 645 and lightWavelengthNM <= 780) then
-        -- Solid Red (1, 0, 0), with decreasing intensity (set below)
-        red = 1.0;
-        green = 0.0;
-        blue = 0.0;
-      else
-        red = 0.0;
-        green = 0.0;
-        blue = 0.0;
-      end
-      -- Intensity factor goes through the range:
-      -- 0.1 (350-420 nm) 1.0 (420-645 nm) 1.0 (645-780 nm) 0.2
-      if (lightWavelengthNM >= 350 and lightWavelengthNM < 420) then
-        factor = 0.3 + 0.9 * (lightWavelengthNM - 350) / (420 - 350)
-      elseif (lightWavelengthNM >= 420 and lightWavelengthNM < 645) then
-        factor = 1.0
-      elseif (lightWavelengthNM >= 645 and lightWavelengthNM <= 780) then
-        factor = 0.4 + 0.8 * (780 - lightWavelengthNM) / (780 - 645);
-      else
-        factor = 0.0;
-      end
-      r = colorFactorAdjust(red, factor, 1, gamma);
-      g = colorFactorAdjust(green, factor, 1,gamma);
-      b = colorFactorAdjust(blue, factor, 1, gamma);
-      colorsTable[k] = {r, g, b, 1}
     end
+    self.colorsTable = colorsTable
   end
-  self.colorsTable = colorsTable
 end
 function colorFactorAdjust (color, factor, intensityMax, gamma)
   if (color == 0.0) then
@@ -11918,10 +11922,9 @@ end
   tracker:grabActiveItem()
   tracker:getTuningFromTrackName()
   tracker:generatePitches()
-  if self['tuning'] and self['tuning']['cents'] then
-    tracker:generateFrequencies()
-    tracker:generatePitchColors()
-  end
+  tracker:generateFrequencies()
+  tracker:generatePitchColors()
+
 
   local wpos = tracker:loadConfig("_wpos.cfg", {})
 
