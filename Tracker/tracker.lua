@@ -11913,15 +11913,15 @@ end
   -- instead of even going into a menu and selecting it
   tracker:initTunings()
   tracker:generatePitches()
-  tracker:generateFrequencies()
-  tracker:generatePitchColors()
   tracker:updateNames()
   tracker:initColors()
   tracker:grabActiveItem()
   tracker:getTuningFromTrackName()
   tracker:generatePitches()
-  tracker:generateFrequencies()
-  tracker:generatePitchColors()
+  if self['tuning'] and self['tuning']['cents'] then
+    tracker:generateFrequencies()
+    tracker:generatePitchColors()
+  end
 
   local wpos = tracker:loadConfig("_wpos.cfg", {})
 
