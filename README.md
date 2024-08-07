@@ -4,7 +4,7 @@ In development for extending JoepVanlier/Hackey-Trackey to support microtonal tu
 ## New features
 
   * New notations:
-    * microtonal tuning notation such as 31EDO - [x], 17EDO etc. 
+    * microtonal tuning notation such as 31EDO * [x], 17EDO etc. 
     * drumpad notation
     * unformatted notation to keep midi note # as hex directly instead of renaming to a note - [x]
   * Apply tuning automatically by matching tuning name to name of track that the selected midi is on to detect and apply tuning as alternative to saving in global hackey trackey config - [x]
