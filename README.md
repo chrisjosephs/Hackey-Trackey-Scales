@@ -1,3 +1,21 @@
+# Hackey-Trackey tuning & notation edits
+In development for extending JoepVanlier/Hackey-Trackey to support microtonal tunings and scales
+
+## New features
+
+  * New notations:
+    * microtonal tuning notation such as 31EDO, 17EDO etc.
+    * drumpad notation
+    * unformatted notation to keep midi note # as hex directly instead of renaming to a note
+  * Apply tuning automatically by matching tuning name to name of track that the selected midi is on to detect and apply tuning as alternative to saving in global hackey trackey config
+    * For example - if you create midi on a track that has "edo31" in the name of the track, then hackey trackey will adopt this notation and # notes per octave  
+  * Coloured notes (optional) - coloured according to colours of sound (sound to lightwave frequencies' colours 40 octaves higher) - https://www.flutopedia.com/sound_color.htm
+
+## Issues to contemplate
+
+* In notation - for example - for high EDOs, notation (using Ableton as reference) like to use unicode letters like "E♭", "B♯' however "Eb", "B#" don't mess up the font and are normal ascii so used those
+* Though able to automatically match tuning from track name if it is specified in there, there doesn't seem to be anyway to iterate through parent track groups.  If there is a way to do this, could keep iterating up the chain of tracks to find if it's specified in a parent track
+
 # Hackey-Trackey
 ## What is it?
 A lightweight tracker plugin for REAPER 5.x and up. Hackey-Trackey is a small 

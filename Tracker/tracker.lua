@@ -2371,22 +2371,130 @@ end
 -- Pitch => note
 ------------------------------
 function tracker:generatePitches()
-  local notes = { 'C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-' }
+  local notes = self.tuning.notes
   local pitches = {}
   j = 0
-  for k,v in pairs(notes) do
-    pitches[j] = v.."M"
+  for k, v in ipairs(notes) do
+    if self.tuning.type == 'unformatted' then
+      pitches[j] = notes[k].text
+    else
+      pitches[j] = notes[k].text .. "M"
+    end
     j = j + 1
   end
-  
-  for i = 0,12 do
-    for k,v in pairs(notes) do
-      pitches[j] = v..i
+  for i = 0, math.ceil(127 / self.tuning.numNotes) do
+    for k, v in ipairs(notes) do
+      pitches[j] = notes[k].text .. i
       j = j + 1
     end
   end
   self.pitchTable = pitches
 end
+
+------------------------------
+-- Frequency => Pitch
+-- these frequencies can be used to generate colors for specific pitches
+-- according to "Color of Sound https://www.flutopedia.com/sound_color.htm
+------------------------------
+function tracker:generateFrequencies()
+  tuning = self.tuning
+  local frequenciesTable = {}
+  local concertA_hz = 440.0
+  for k, v in pairs(self.pitchTable) do
+    --- this assumes equal division of octaves cents
+    --- for scales with cents specified per note will have to add the cents serially
+    frequenciesTable[k] = concertA_hz * (2^((tuning.cents * k) / 1200))
+  end
+  self.frequenciesTable = frequenciesTable
+end
+------------------------------
+-- Color => Frequency
+-- these frequencies can be used to generate colors for specific pitches
+-- according to "Color of Sound https://www.flutopedia.com/sound_color.htm
+------------------------------
+function tracker:generatePitchColors()
+  local frequencies = self.frequenciesTable
+  local colorsTable = {}
+  for k, frequency in pairs(frequencies) do
+    local lightFreqRedLower = 400000000000000;
+    local speedOfLightVacuum = 299792458; -- m/sec
+    local speedOfSound = 346; -- hardcode this m/sec..  I suppose you could be in a very strange atmosphere like underwater or very very high altitude?!
+    if (frequency > 0) then
+      local lightFrequency = frequency
+      local lightOctave = 0
+      while lightFrequency < lightFreqRedLower do
+        lightFrequency = (lightFrequency * 2)
+        lightOctave = lightOctave + 1
+      end
+      -- Scale to THz and Nanometers
+      local lightWavelength = speedOfLightVacuum / lightFrequency;
+      local lightWavelengthNM = lightWavelength * 1000000000;
+      -- var lightRGB = getColorFromWaveLength (lightWavelengthNM) :
+      -- Color values in the range -1 to 1
+      local gamma = 1.00;
+      local blue, green, red, factor = 0;
+      if (lightWavelengthNM >= 350 and lightWavelengthNM < 440) then
+        -- From Purple (1, 0, 1) to Blue (0, 0, 1), with increasing intensity (set below)
+        red = -(lightWavelengthNM - 440) / (440 - 350)
+        green = 0.0;
+        blue = 1.0;
+      elseif (lightWavelengthNM >= 440 and lightWavelengthNM < 490) then
+        -- From Blue (0, 0, 1) to Cyan (0, 1, 1)
+        red = 0.0;
+        green = (lightWavelengthNM - 440) / (490 - 440);
+        blue = 1.0;
+      elseif (lightWavelengthNM >= 490 and lightWavelengthNM < 510) then
+        -- From  Cyan (0, 1, 1)  to  Green (0, 1, 0)
+        red = 0.0
+        green = 1.0
+        blue = -(lightWavelengthNM - 510) / (510 - 490)
+      elseif (lightWavelengthNM >= 510 and lightWavelengthNM < 580) then
+        -- From  Green (0, 1, 0)  to  Yellow (1, 1, 0)
+        red = (lightWavelengthNM - 510) / (580 - 510)
+        green = 1.0
+        blue = 0.0
+      elseif (lightWavelengthNM >= 580 and lightWavelengthNM < 645) then
+        -- From  Yellow (1, 1, 0)  to  Red (1, 0, 0)
+        red = 1.0;
+        green = -(lightWavelengthNM - 645) / (645 - 580);
+        blue = 0.0;
+      elseif (lightWavelengthNM >= 645 and lightWavelengthNM <= 780) then
+        -- Solid Red (1, 0, 0), with decreasing intensity (set below)
+        red = 1.0;
+        green = 0.0;
+        blue = 0.0;
+      else
+        red = 0.0;
+        green = 0.0;
+        blue = 0.0;
+      end
+      -- Intensity factor goes through the range:
+      -- 0.1 (350-420 nm) 1.0 (420-645 nm) 1.0 (645-780 nm) 0.2
+      if (lightWavelengthNM >= 350 and lightWavelengthNM < 420) then
+        factor = 0.1 + 0.9 * (lightWavelengthNM - 350) / (420 - 350)
+      elseif (lightWavelengthNM >= 420 and lightWavelengthNM < 645) then
+        factor = 1.0
+      elseif (lightWavelengthNM >= 645 and lightWavelengthNM <= 780) then
+        factor = 0.2 + 0.8 * (780 - lightWavelengthNM) / (780 - 645);
+      else
+        factor = 0.0;
+      end
+      r = colorFactorAdjust(red, factor, 1, gamma);
+      g = colorFactorAdjust(green, factor, 1,gamma);
+      b = colorFactorAdjust(blue, factor, 1, gamma);
+      colorsTable[k] = {r, g, b, 1}
+    end
+  end
+  self.colorsTable = colorsTable
+end
+function colorFactorAdjust (color, factor, intensityMax, gamma)
+  if (color == 0.0) then
+    return 0;
+  else
+    return (intensityMax * (color * factor ^ gamma));
+  end
+end
+
 
 function namerep(str)
   str = str:gsub(" / ", "/")
@@ -3473,7 +3581,7 @@ function drawPattern(colors, data, scrolly, rows, sig, zeroindexed, xloc, yloc, 
       for x=1,#xloc do
         local thisfield = dlink[x]
         gfx.x = xloc[x]
-        gfx.set(table.unpack(fc[thisfield] or tx))
+        gfx.set(table.unpack(data['color'][rows*xlink[x]+absy-1] or fc[thisfield] or tx))
 
         local cdata = data[thisfield][rows*xlink[x]+absy-1]
         writeField( cdata, ellipsis, xloc[x], yloc[y], customFont )
@@ -4951,6 +5059,7 @@ function tracker:createNote(inChar, shift)
   local rows       = self.rows
   local singlerow  = self:rowToPpq(1)
   local shouldMove = false
+  local numNotes = self.tuning.numNotes -- num notes in an octave
 
   -- Determine fieldtype, channel and row
   local ftype, chan, row = self:getLocation()
@@ -4978,9 +5087,9 @@ function tracker:createNote(inChar, shift)
       -- Advance by note 2 is a special mode where we don't change the octave
       if ( self.cfg.advanceByNote == 2 and noteToEdit ) then
         local old_pitch, _, _, _ = table.unpack(notes[noteToEdit])
-        pitch = note - math.floor(note / 12) * 12 + math.floor(old_pitch / 12) * 12
+        pitch = note - math.floor(note / self.tuning.numNotes ) * numNotes + math.floor(old_pitch / numNotes) * numNotes
       else
-        pitch = note + self.transpose * 12        
+        pitch = note + self.transpose * numNotes
       end
       
       shouldMove = self:placeNote(pitch, chan, row)
@@ -4989,7 +5098,7 @@ function tracker:createNote(inChar, shift)
       if ( octave ) then
         if ( noteToEdit ) then
           local pitch, vel, startppqpos, endppqpos = table.unpack( notes[noteToEdit] )
-          pitch = pitch - math.floor(pitch/12)*12 + (octave+1) * 12
+          pitch = pitch - math.floor(pitch/numNotes)*numNotes + (octave+1) * numNotes
           reaper.MIDI_SetNote(self.take, noteToEdit, nil, nil, nil, nil, nil, pitch, nil, true)
           self:playNote(chan, pitch, vel)
         end
@@ -6097,7 +6206,10 @@ function tracker:assignFromMIDI(channel, idx)
   -- Add the note if there is space on this channel, otherwise return false
   local data = self.data
   if ( self:isFree( channel, ystart, yend ) ) then
-    data.text[rows*channel+ystart]      = pitchTable[pitch]
+    data.text[rows*channel+ystart]      = self.pitchTable[pitch]
+    if(self.colorsTable) then
+      data['color'][rows*channel+ystart] = self.colorsTable[pitch]
+    end
     data.vel1[rows*channel+ystart]      = self:velToField(vel, 1)
     data.vel2[rows*channel+ystart]      = self:velToField(vel, 2)
 
@@ -6258,6 +6370,7 @@ function tracker:initializeGrid()
   data.mod2 = {}
   data.mod3 = {}
   data.mod4 = {}
+  data.color = {}
   local channels = self.channels
   local rows = self.rows
   for x=0,channels-1 do
@@ -11317,8 +11430,8 @@ function tracker:getNoteNames()
     -- if it turns out to matter, we can get the channel from tracker.outChannel
     local channel = 0
 
-    -- start at 12 because notes 0-11 are octave -1, which isn't in pitchTable
-    for note = 12, 127 do
+    -- start at numNotes because notes 0-numNotes are octave -1, which isn't in pitchTable
+    for note = self.tuning.numNotes, 127 do
       noteNames[note] = reaper.GetTrackMIDINoteName(track_num, note, channel)
     end
   end
@@ -11793,17 +11906,30 @@ end
       scales:setScale( cfg.scale )
     end
 
-    tracker:generatePitches()
-    tracker:initColors()
-    tracker:grabActiveItem()
-    local wpos = tracker:loadConfig("_wpos.cfg", {})
+  -- We could save extra config files per trackname and remember config per track name
 
-    tracker.harmonyActive = wpos.harmonyActive or tracker.harmonyActive
-    tracker.noteNamesActive = wpos.noteNamesActive or tracker.noteNamesActive
-    tracker.helpActive = wpos.helpActive or tracker.helpActive
-    tracker.optionsActive = wpos.optionsActive or tracker.optionsActive
-    local width, height = tracker:computeDims(48)
-    tracker:updateNames()
+  -- With this trick one can save time switching tuning depending if the
+  -- track name you are loading the tracker on contains the tuning's name
+  -- instead of even going into a menu and selecting it
+  tracker:initTunings()
+  tracker:generatePitches()
+  tracker:generateFrequencies()
+  tracker:generatePitchColors()
+  tracker:updateNames()
+  tracker:initColors()
+  tracker:grabActiveItem()
+  tracker:getTuningFromTrackName()
+  tracker:generatePitches()
+  tracker:generateFrequencies()
+  tracker:generatePitchColors()
+
+  local wpos = tracker:loadConfig("_wpos.cfg", {})
+
+  tracker.harmonyActive = wpos.harmonyActive or tracker.harmonyActive
+  tracker.noteNamesActive = wpos.noteNamesActive or tracker.noteNamesActive
+  tracker.helpActive = wpos.helpActive or tracker.helpActive
+  tracker.optionsActive = wpos.optionsActive or tracker.optionsActive
+  local width, height = tracker:computeDims(48)
 
     --if ( wpos.w and wpos.w > width ) then
       width = wpos.w or width
@@ -11835,6 +11961,251 @@ end
   --else
   --  reaper.ShowMessageBox("Please select a MIDI item before starting the tracker", "No MIDI item selected", 0)
   --end
+  end
+function tracker:getTuningFromTrackName()
+  if self.trackName then
+    local trackNameL = self.trackName:lower()
+    if string.find(trackNameL, "edo12") or string.find(trackNameL, "12edo") then
+      tracker:loadTuning('edo12')
+    elseif string.find(trackNameL, "edo31") or string.find(trackNameL, "31edo") then
+      tracker:loadTuning('edo31')
+    elseif string.find(trackNameL, "drumpads16") then
+      tracker:loadTuning('drumpads16')
+    elseif string.find(trackNameL, "unformatted") then
+      tracker:loadTuning('unformatted')
+    else
+      tracker:loadTuning('edo12')
+    end
+  end
+end
+function tracker:loadTuning(tuning)
+  tuning = tuning or 'edo12'
+  self.tuning = self.tunings[tuning]
+end
+function tracker:initTunings()
+  self.tunings = {}
+  self.tunings.concertA_hz = 440;
+  self.tunings.unformatted = {}
+  self.tunings.edo12 = {}
+  self.tunings.edo31 = {}
+  self.tunings.drumpads16 = {
+    -- format drumpad notes text for 16 drumpads as 0- to f- (use lowercase hex f to differentiate from note F)
+    name = 'Drumpads x16',
+    numNotes = 16,
+    cents = null,
+    type = 'pads',
+    notes = {
+      [1] = {
+        text = '0-',
+        color = {148/256, 148/256, 148/256, 1} },
+      [2] = {
+        text = '1-',
+        color = {148/256, 1048/256, 148/256, 1} },
+      [3] = {
+        text = '2-',
+        color = {.8, .0, .5} },
+      [4] = {
+        text = '3-',
+        color = {.8, .0, .5} },
+      [5] = {
+        text = '4-',
+        color = {.8, .0, .5} },
+      [6] = {
+        text = '5-',
+        color = {.8, .0, .5} },
+      [7] = {
+        text = '6-',
+        color = {.8, .0, .5} },
+      [8] = {
+        text = '7-',
+        color = {.8, .0, .5} },
+      [9] = {
+        text = '8-',
+        color = {.8, .0, .5} },
+      [10] = {
+        text = '9-',
+        color = {.8, .0, .5} },
+      [11] = {
+        text = 'a-',
+        color = {.8, .0, .5} },
+      [12] = {
+        text = 'b-',
+        color = {.8, .0, .5} },
+      [13] = {
+        text = 'c-',
+        color = {.8, .0, .5} },
+      [14] = {
+        text = 'd-',
+        color = {.8, .0, .5} },
+      [15] = {
+        text = 'e-',
+        color = {.8, .0, .5} },
+      [16] = {
+        text = 'f-',
+        color = {.8, .0, .5} },
+    }
+  }
+  self.tunings.unformatted = {
+    name = 'Unformatted midi note #numbers as hex 00 to FF',
+    numNotes = 127,
+    cents = null,
+    type = 'unformatted',
+    notes = {}
+  }
+  for i = 0, 127 do
+    self.tunings.unformatted.notes[i] = { text = string.upper(string.format("%x", i)) }
+  end
+  self.tunings.edo12 = {
+    name = 'Standard 12EDO',
+    numNotes = 12,
+    cents = 100,
+    stepsFromA = -9,  -- how many steps from A is 1st note in scale
+    type = 'notes',
+    notes = {
+      [1] = {
+        text = 'C-',
+        color = { 148 / 256, 148 / 256, 148 / 256, 1 } },
+      [2] = {
+        text = 'C#',
+        color = { 148 / 256, 148 / 256, 148 / 256, 1 } },
+      [3] = {
+        text = 'D-',
+        color = { .8, .0, .5 } },
+      [4] = {
+        text = 'D#',
+        color = { .8, .0, .5 } },
+      [5] = {
+        text = 'E-',
+        color = { .8, .0, .5 } },
+      [6] = {
+        text = 'F-',
+        color = { .8, .0, .5 } },
+      [7] = {
+        text = 'F#',
+        color = { .8, .0, .5 } },
+      [8] = {
+        text = 'G-',
+        color = { .8, .0, .5 } },
+      [9] = {
+        text = 'G#',
+        color = { .8, .0, .5 } },
+      [10] = {
+        text = 'A-',
+        color = { .8, .0, .5 } },
+      [11] = {
+        text = 'A#',
+        color = { .8, .0, .5 } },
+      [12] = {
+        text = 'B-',
+        color = { .8, .0, .5 } },
+    }
+  }
+  self.tunings.edo31 = {
+    stepsFromA = -23,
+    numNotes = 31,
+    cents = 38.7097,
+    type = 'notes',
+    notes = {
+      [1] = {
+        text = '>C',
+        color = { 148 / 256, 148 / 256, 148 / 256, 1 }
+      },
+      [2] = {
+        text = 'C#',
+        color = { 148 / 256, 148 / 256, 148 / 256, 1 },
+      },
+      [3] = {
+        text = 'Db',
+        color = { .8, .0, .5 },
+      },
+      [4] = {
+        text = '<D',
+        color = { .8, .0, .5 },
+      },
+      [5] = {
+        text = 'D-',
+        color = { .8, .0, .5 } },
+      [6] = {
+        text = '>D',
+        color = { .8, .0, .5 } },
+      [7] = {
+        text = 'D#',
+        color = { .8, .0, .5 } },
+      [8] = {
+        text = 'Eb',
+        color = { .8, .0, .5 } },
+      [9] = {
+        text = '<E',
+        color = { .8, .0, .5 } },
+      [10] = {
+        text = 'E-',
+        color = { .8, .0, .5 } },
+      [11] = {
+        text = 'Fb',
+        color = { .8, .0, .5 } },
+      [12] = {
+        text = 'E#',
+        color = { .8, .0, .5 } },
+      [13] = {
+        text = 'F-',
+        color = { .8, .0, .5 } },
+      [14] = {
+        text = '>F',
+        color = { .8, .0, .5 } },
+      [15] = {
+        text = 'F#',
+        color = { .8, .0, .5 } },
+      [16] = {
+        text = 'Gb',
+        color = { .8, .0, .5 } },
+      [17] = {
+        text = '<G',
+        color = { .8, .0, .5 } },
+      [18] = {
+        text = 'G-',
+        color = { .8, .0, .5 } },
+      [19] = {
+        text = '>G',
+        color = { .8, .0, .5 } },
+      [20] = {
+        text = 'G#',
+        color = { .8, .0, .5 } },
+      [21] = {
+        text = 'Ab',
+        color = { .8, .0, .5 } },
+      [22] = {
+        text = '<A',
+        color = { .8, .0, .5 } },
+      [23] = {
+        text = 'A-',
+        color = { .8, .0, .5 } },
+      [24] = {
+        text = '>A',
+        color = { .8, .0, .5 } },
+      [25] = {
+        text = 'A#',
+        color = { .8, .0, .5 } },
+      [26] = {
+        text = 'Bb',
+        color = { .8, .0, .5 } },
+      [27] = {
+        text = '<B',
+        color = { .8, .0, .5 } },
+      [28] = {
+        text = 'B-',
+        color = { .8, .0, .5 } },
+      [29] = {
+        text = 'Cb',
+        color = { .8, .0, .5 } },
+      [30] = {
+        text = 'B#',
+        color = { .8, .0, .5 } },
+      [31] = {
+        text = 'C-',
+        color = { .8, .0, .5 } },
+    }
+  }
+  self.tuning = self.tunings.edo12
 end
 
 Main()
