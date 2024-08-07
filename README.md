@@ -3,15 +3,17 @@ In development for extending JoepVanlier/Hackey-Trackey to support microtonal tu
 
 ## New features
 
-  * New notations:
-    * microtonal tuning notation such as 31EDO * [x], 17EDO etc. 
-    * drumpad notation
-    * unformatted notation to keep midi note # as hex directly instead of renaming to a note - [x]
-  * Apply tuning automatically by matching tuning name to name of track that the selected midi is on to detect and apply tuning as alternative to saving in global hackey trackey config - [x]
-    * For example - if you create midi on a track that has "edo31" in the name of the track, then hackey trackey will adopt this notation and # notes per octave - [x]
-  * Coloured notes (optional) - coloured according to colours of sound (sound to lightwave frequencies' colours 40 octaves higher) - https://www.flutopedia.com/sound_color.htm - [x]
-    * Colored column backgrounds - colour the columns background the note colour until a new note, or note OFF, so even if the note text is offscreen above then there is still indication a note is active - [ ]
-  * Add a a "tunings.lua" to put custom tuning files for abritrary tuning configurations alongside scales.lua - [ ]
+  - [x] New notations:
+    * microtonal tuning notation such as
+      * - [x] 31EDO,
+        - [ ] 17EDO, Bohlen Pierce, non octave scales etc 
+    * [ ] drumpad notation
+    * [ ]unformatted notation to keep midi note # as hex directly instead of renaming to a note - [x]
+  * [x] Apply tuning automatically by matching tuning name to name of track that the selected midi is on to detect and apply tuning as alternative to saving in global hackey trackey config
+    * [x] For example - if you create midi on a track that has "edo31" in the name of the track, then hackey trackey will adopt this notation and # notes per octave 
+  * [x] Coloured notes (optional) - coloured according to colours of sound (sound to lightwave frequencies' colours 40 octaves higher) - https://www.flutopedia.com/sound_color.htm
+    * [ ]  Colored column backgrounds - colour the columns background the note colour until a new note, or note OFF, so even if the note text is offscreen above then there is still indication a note is active in the column due to coloured column background being rendered
+  - [ ] Add a a "tunings.lua" to put custom tuning files for abritrary tuning configurations alongside scales.lua
 
 ## Issues to contemplate
 
