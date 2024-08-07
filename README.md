@@ -8,7 +8,7 @@ In development for extending JoepVanlier/Hackey-Trackey to support microtonal tu
       * - [x] 31EDO,
         - [ ] 17EDO, Bohlen Pierce, non octave scales etc 
     * [ ] drumpad notation
-    * [ ]unformatted notation to keep midi note # as hex directly instead of renaming to a note - [x]
+    * [x] unformatted notation to keep midi note # as hex directly instead of renaming to a note
   * [x] Apply tuning automatically by matching tuning name to name of track that the selected midi is on to detect and apply tuning as alternative to saving in global hackey trackey config
     * [x] For example - if you create midi on a track that has "edo31" in the name of the track, then hackey trackey will adopt this notation and # notes per octave 
   * [x] Coloured notes (optional) - coloured according to colours of sound (sound to lightwave frequencies' colours 40 octaves higher) - https://www.flutopedia.com/sound_color.htm
