@@ -2375,10 +2375,10 @@ function tracker:generatePitches()
   local pitches = {}
   j = 0
   for k, v in ipairs(notes) do
-    if self.tuning.type == 'unformatted' then
-      pitches[j] = notes[k].text
-    else
+    if self.tuning.type == 'notes' then
       pitches[j] = notes[k].text .. "M"
+    else
+      pitches[j] = notes[k].text
     end
     j = j + 1
   end
@@ -6231,12 +6231,19 @@ function tracker:assignFromMIDI(channel, idx)
 
     data.noteStart[rows*channel+ystart] = idx
     for y = ystart,yend,1 do
+      if(self.colorsTable) then
+        data['color'][rows*channel+y] = self.colorsTable[pitch]
+      end
       data.note[rows*channel+y] = idx
     end
     if ( yend+1 < rows ) then
+      if(self.colorsTable) then
+        data['color'][rows*channel+yend+1 ] = self.colorsTable[pitch]
+      end
       if ( self:isFree( channel, yend+1, yend+1, 1 ) ) then
         data.text[rows*channel+yend+1] = 'OFF'
         data.note[rows*channel+yend+1] = -1
+        data['color'][rows*channel+yend+1 ] = {1, 1, 1, 1}
       end
     end
     return true
@@ -11909,17 +11916,15 @@ end
     if ( cfg.scale and ( scales.curScale ~= cfg.scale ) ) then
       scales:setScale( cfg.scale )
     end
-
-  -- We could save extra config files per trackname and remember config per track name
-
-  -- With this trick one can save time switching tuning depending if the
-  -- track name you are loading the tracker on contains the tuning's name
-  -- instead of even going into a menu and selecting it
   tracker:initTunings()
   tracker:generatePitches()
   tracker:updateNames()
   tracker:initColors()
   tracker:grabActiveItem()
+  -- We could save extra config files per trackname and remember config per track name
+  -- With this trick one can save time switching tuning depending if the
+  -- track name you are loading the tracker on contains the tuning's name
+  -- instead of even going into a menu and selecting it
   tracker:getTuningFromTrackName()
   tracker:generatePitches()
   tracker:generateFrequencies()
@@ -11996,7 +12001,7 @@ function tracker:initTunings()
     name = 'Drumpads x16',
     numNotes = 16,
     cents = null,
-    type = 'pads',
+    type = 'pad',
     notes = {
       [1] = {
         text = '0-',
@@ -12067,40 +12072,40 @@ function tracker:initTunings()
     notes = {
       [1] = {
         text = 'C-',
-        color = { 148 / 256, 148 / 256, 148 / 256, 1 } },
+      },
       [2] = {
         text = 'C#',
-        color = { 148 / 256, 148 / 256, 148 / 256, 1 } },
+      },
       [3] = {
         text = 'D-',
-        color = { .8, .0, .5 } },
+      },
       [4] = {
         text = 'D#',
-        color = { .8, .0, .5 } },
+      },
       [5] = {
         text = 'E-',
-        color = { .8, .0, .5 } },
+      },
       [6] = {
         text = 'F-',
-        color = { .8, .0, .5 } },
+      },
       [7] = {
         text = 'F#',
-        color = { .8, .0, .5 } },
+      },
       [8] = {
         text = 'G-',
-        color = { .8, .0, .5 } },
+      },
       [9] = {
         text = 'G#',
-        color = { .8, .0, .5 } },
+      },
       [10] = {
         text = 'A-',
-        color = { .8, .0, .5 } },
+      },
       [11] = {
         text = 'A#',
-        color = { .8, .0, .5 } },
+      },
       [12] = {
         text = 'B-',
-        color = { .8, .0, .5 } },
+      },
     }
   }
   self.tunings.edo31 = {
@@ -12111,101 +12116,199 @@ function tracker:initTunings()
     notes = {
       [1] = {
         text = '>C',
-        color = { 148 / 256, 148 / 256, 148 / 256, 1 }
       },
       [2] = {
         text = 'C#',
-        color = { 148 / 256, 148 / 256, 148 / 256, 1 },
       },
       [3] = {
         text = 'Db',
-        color = { .8, .0, .5 },
       },
       [4] = {
         text = '<D',
-        color = { .8, .0, .5 },
       },
       [5] = {
         text = 'D-',
-        color = { .8, .0, .5 } },
+      },
       [6] = {
         text = '>D',
-        color = { .8, .0, .5 } },
+      },
       [7] = {
         text = 'D#',
-        color = { .8, .0, .5 } },
+      },
       [8] = {
         text = 'Eb',
-        color = { .8, .0, .5 } },
+      },
       [9] = {
         text = '<E',
-        color = { .8, .0, .5 } },
+      },
       [10] = {
         text = 'E-',
-        color = { .8, .0, .5 } },
+      },
       [11] = {
         text = 'Fb',
-        color = { .8, .0, .5 } },
+      },
       [12] = {
-        text = 'E#',
-        color = { .8, .0, .5 } },
+        text = 'E#'
+      ,},
       [13] = {
         text = 'F-',
-        color = { .8, .0, .5 } },
+      },
       [14] = {
         text = '>F',
-        color = { .8, .0, .5 } },
+      },
       [15] = {
         text = 'F#',
-        color = { .8, .0, .5 } },
+      },
       [16] = {
         text = 'Gb',
-        color = { .8, .0, .5 } },
+      },
       [17] = {
         text = '<G',
-        color = { .8, .0, .5 } },
+      },
       [18] = {
         text = 'G-',
-        color = { .8, .0, .5 } },
+      },
       [19] = {
         text = '>G',
-        color = { .8, .0, .5 } },
+      },
       [20] = {
         text = 'G#',
-        color = { .8, .0, .5 } },
+      },
       [21] = {
         text = 'Ab',
-        color = { .8, .0, .5 } },
+      },
       [22] = {
         text = '<A',
-        color = { .8, .0, .5 } },
+      },
       [23] = {
         text = 'A-',
-        color = { .8, .0, .5 } },
+      },
       [24] = {
         text = '>A',
-        color = { .8, .0, .5 } },
+      },
       [25] = {
         text = 'A#',
-        color = { .8, .0, .5 } },
+      },
       [26] = {
         text = 'Bb',
-        color = { .8, .0, .5 } },
+      },
       [27] = {
         text = '<B',
-        color = { .8, .0, .5 } },
+      },
       [28] = {
         text = 'B-',
-        color = { .8, .0, .5 } },
+      },
       [29] = {
         text = 'Cb',
-        color = { .8, .0, .5 } },
+      },
       [30] = {
         text = 'B#',
-        color = { .8, .0, .5 } },
+      },
       [31] = {
         text = 'C-',
-        color = { .8, .0, .5 } },
+      },
+    }
+  }
+  self.tunings.amen = {
+    -- format amen pattern notes kck,hat,snare,cha,kal,lah,kah,kick,snare,cha,kah
+    name = 'Amen',
+    numNotes = 12,
+    cents = null,
+    type = 'drumpad',
+    notes = {
+      [1] = {
+        text = '1kck',
+        color = {148/256, 148/256, 148/256, 1} },
+      [2] = {
+        text = '2hat',
+        color = {148/256, 1048/256, 148/256, 1} },
+      [3] = {
+        text = '3snr',
+        color = {.8, .0, .5} },
+      [4] = {
+        text = '4cha',
+        color = {.8, .0, .5} },
+      [5] = {
+        text = '5kal',
+        color = {.8, .0, .5} },
+      [6] = {
+        text = '6lah',
+        color = {.8, .0, .5} },
+      [7] = {
+        text = '7kah',
+        color = {.8, .0, .5} },
+      [8] = {
+        text = '8kck',
+        color = {.8, .0, .5} },
+      [9] = {
+        text = '9snr',
+        color = {.8, .0, .5} },
+      [10] = {
+        text = '9cha',
+        color = {.8, .0, .5} },
+      [11] = {
+        text = 'Aka-',
+        color = {.8, .0, .5} },
+      [12] = {
+        text = 'B -',
+        color = {.8, .0, .5} },
+      [13] = {
+        text = 'C -',
+        color = {.8, .0, .5} },
+      [14] = {
+        text = 'D -',
+        color = {.8, .0, .5} },
+      [15] = {
+        text = 'E -',
+        color = {.8, .0, .5} },
+      [16] = {
+        text = 'F -',
+        color = {.8, .0, .5} },
+    }
+  }
+  self.tunings.amen = {
+    -- format amen pattern notes kck,hat,snare,kck,kal,lah,kah,snare,cha,kah,lah,kah
+    name = 'Amen-2 ',
+    numNotes = 12,
+    cents = null,
+    type = 'drumpad',
+    notes = {
+      [1] = {
+        text = '1kck',
+        color = {148/256, 148/256, 148/256, 1} },
+      [2] = {
+        text = '2hat',
+        color = {148/256, 1048/256, 148/256, 1} },
+      [3] = {
+        text = '3snr',
+        color = {.8, .0, .5} },
+      [4] = {
+        text = '4kck',
+        color = {.8, .0, .5} },
+      [5] = {
+        text = '5kal',
+        color = {.8, .0, .5} },
+      [6] = {
+        text = '6lah',
+        color = {.8, .0, .5} },
+      [7] = {
+        text = '7kah',
+        color = {.8, .0, .5} },
+      [8] = {
+        text = '8snr',
+        color = {.8, .0, .5} },
+      [9] = {
+        text = '9cha',
+        color = {.8, .0, .5} },
+      [10] = {
+        text = '9kah',
+        color = {.8, .0, .5} },
+      [11] = {
+        text = 'Alah',
+        color = {.8, .0, .5} },
+      [12] = {
+        text = 'Bkah',
+        color = {.8, .0, .5} },
     }
   }
   self.tuning = self.tunings.edo12
